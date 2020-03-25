@@ -1,0 +1,9 @@
+### Windows commands ###
+
+netconvert --osm-files txmap.osm -o txmap.net.xml
+
+python "%SUMO_HOME%\tools\randomTrips.py" -n txmap.net.xml --trip-attributes="type=\"light_norm_heavy\"" -a txmap.add.xml -r txmap.rou.xml -e 2000 -l
+
+python "%SUMO_HOME%\tools\randomTrips.py" -n txmap.net.xml --trip-attributes="type=\"light_norm_heavy\"" -a txmap.add.xml -r txmap.rou.xml -e 2000 -l -p 0.75 --binomial=5
+del trips.trips.xml
+del txmap.rou.alt.xml
