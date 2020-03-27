@@ -2,6 +2,6 @@
 # Implemented according to pseudo-code given in Sec 10.5 of Sutton & Bartos's RL book
 # Takes as input No. of runs, n, alpha, beta, epsilon. Outputs the final weights after all the runs.
 
-# Depends on: sim_environment.py, plot_metrics.py
+# Depends on: sim_environment.py
 
 # Handled by Mithun
