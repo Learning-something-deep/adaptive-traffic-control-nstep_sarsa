@@ -11,7 +11,7 @@
 #       function approximation.
 # Inputs - n: n-step bootstrapping
 #          alpha: step size for weight updates
-#          beta: step size of avg reward updates
+#          beta: step size for avg reward updates
 #          epsilon: exploration parameter for epsilon-greedy
 #          Nruns: No. of runs
 # Outputs - W: Trained weights after all runs
