@@ -22,7 +22,7 @@ def start_new_run(run):
 # Desc: Gives Green signal to the given intersection side.
 # Inputs - a: The intersection side to be given Green signal to, 1<=a<=15
 # Outputs - A dictionary containing 2 elements
-#               'rwd': Reward
+#               'rwd': Reward; Returns -100 if the current simulation is over
 #               'next_state': 15-element array containing the no. of vehicles waiting at the intersections in new state
 def take_action(a):
 
