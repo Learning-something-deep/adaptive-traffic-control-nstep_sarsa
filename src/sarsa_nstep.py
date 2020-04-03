@@ -1,14 +1,15 @@
-"""
-Implements Differential semi-gradient n-step Sarsa for estimating q = q*
-Implemented according to pseudo-code given in Sec 10.5 of Sutton & Bartos's RL book
-Takes as input No. of runs, n, alpha, beta, epsilon. Outputs the final weights after all the runs.
+# Implements Differential semi-gradient n-step Sarsa for estimating q = q*
+# Implemented according to pseudo-code given in Sec 10.5 of Sutton & Bartos's RL book
+# Takes as input No. of runs, n, alpha, beta, epsilon. Outputs the final weights after all the runs.
 
-Depends on: sim_environment.py
-"""
+# Depends on: sim_environment.py
+
+# Handled by Akshay
+
+
 import numpy as np
 import random
 import math
-
 import sim_environment
 
 
@@ -38,7 +39,6 @@ def initial_state_generate():
 #          a: Action taken in state s, 1<=a<=15
 #          w: 556-element weight vector, with the last element corresponding to bias
 # Outputs - q_val: Calculated q(s, a) value
-
 def q_est(s, a, w):
     q_val = np.dot(w, phi(s, a))
     return q_val
@@ -61,22 +61,14 @@ def epsilon_greedy_a(e, a_space, next_s, w):
 # Desc: Runs the Differential n-step Sarsa algorithm for estimating optimal action-value function using Linear
 #       function approximation.
 # Inputs - n: n-step bootstrapping
-#          alpha: step size for weight updates
-#          beta: step size for avg reward updates
-#          epsilon: exploration parameter for epsilon-greedy
+#          c: Step-size ratio; beta = c*alpha
+#          epsilon: Initial exploration parameter for epsilon-greedy
 #          Nruns: No. of runs
 # Outputs - W: Trained weights after all runs
-
-
 def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
-    # Note: functions used by this function
-    # sim_environment.start_new_run(run)
-    # sim_environment.take_action(a)
-    # sim_environment.get_current_state()
-    # q_est(s, a, w)
 
     print("Running nstep SARSA training")
-    run_len = 5000
+
     s_len = 15
     a_len = 15
     buff_len = n + 1
@@ -86,7 +78,7 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
     weight = np.zeros([s_len * a_len + 1, 1])
     avg_reward = 0
     for run in range(Nruns):
-        print("Run i =" + str(run + 1))
+        print("Run " + str(run + 1))
         e = epsilon * (1 / math.ceil((run + 1) / 3))
         sim_environment.start_new_run(run)
         r, curr_s = initial_state_generate()
@@ -94,7 +86,7 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
         curr_a = random.randint(1, 4)
         a_arr[0] = curr_a
         s_arr.insert(0, curr_s)
-        t=0
+        t = 0
         while r_flag:
             next_intersection = (t + 1) % 4
             if next_intersection == 3:
@@ -102,30 +94,30 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
             else:
                 a_space = [4 * next_intersection + 1, 4 * next_intersection + 2, 4 * next_intersection + 3,
                            4 * next_intersection + 4]
+
             alpha = 1 / (math.ceil((t + 1) / 10))
             beta = c * alpha
             env_param = sim_environment.take_action(curr_a)
             r = env_param['rwd']
             if r == -100:
                 r_flag = False
-            else:
-                r_flag = True
             next_s = env_param['next_state']
             r_arr[(t+1) % (n+1)] = r
             next_a = epsilon_greedy_a(e, a_space, next_s, weight[:, 0])
             s_arr.insert((t+1) % (n+1), next_s)
-            a_arr[(t+1)%(n+1)] = next_a
+            a_arr[(t+1) % (n+1)] = next_a
+
             tau = t - n + 1
             if tau >= 0:
                 q_tau_n = q_est(s_arr[(tau + n) % (n + 1)], a_arr[(tau + n) % (n + 1)], weight[:, 0])
-                q_tau = q_est(s_arr[(tau) % (n + 1)], a_arr[(tau) % (n + 1)], weight[:, 0])
+                q_tau = q_est(s_arr[tau % (n + 1)], a_arr[tau % (n + 1)], weight[:, 0])
                 do_error = sum(r_arr) - n * avg_reward + q_tau_n - q_tau
                 avg_reward = avg_reward + beta * do_error
                 phi_s_a_tau = phi(s_arr[tau % (n + 1)], a_arr[tau % (n + 1)])
                 weight[:, 0] = weight[:, 0] + alpha * do_error * np.transpose(phi_s_a_tau)
             curr_a = next_a
-            t +=1
-    W =  weight[:, 0]
+            t += 1
+    W = weight[:, 0]
     return W
 
 
