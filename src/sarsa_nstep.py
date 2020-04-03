@@ -14,7 +14,7 @@
 #          epsilon: Initial exploration parameter for epsilon-greedy
 #          Nruns: No. of runs
 # Outputs - W: Trained weights after all runs
-def sarsa_nstep_diff(n, c, epsilon, Nruns):
+def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
 
     # Note: functions used by this function
     # sim_environment.start_new_run(run)
@@ -23,6 +23,18 @@ def sarsa_nstep_diff(n, c, epsilon, Nruns):
 
     return W
 
+
+# Desc: Uses the previously trained weights by n-step Sarsa to pick optimal actions.
+# Inputs - Nruns: No. of runs
+# Outputs - None
+def sarsa_nstep_diff_live(n, c, epsilon, Nruns):
+
+    # Note: functions used by this function
+    # sim_environment.start_new_run(run)
+    # sim_environment.take_action(a)
+    # q_est(s, a, w)
+
+    return
 
 
 # Desc: Computes the approximate action-value function q(s, a) using Linear function approximation.
