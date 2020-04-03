@@ -30,7 +30,7 @@ def phi(s, a):
 def initial_state_generate():
     for j in range(np.random.choice([1, 4, 8, 12, 16, 20])):
         env_dict = sim_environment.take_action(0)
-    return env_dict['next_state']
+    return env_dict['rwd'], env_dict['next_state']
 
 
 # Desc: Computes the approximate action-value function q(s, a) using Linear function approximation.
@@ -86,14 +86,16 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
     weight = np.zeros([s_len * a_len + 1, 1])
     avg_reward = 0
     for run in range(Nruns):
-        print("Run i =" + str(run))
+        print("Run i =" + str(run + 1))
         e = epsilon * (1 / math.ceil((run + 1) / 3))
         sim_environment.start_new_run(run)
-        curr_s = initial_state_generate()
+        r, curr_s = initial_state_generate()
+        r_flag = True
         curr_a = random.randint(1, 4)
         a_arr[0] = curr_a
         s_arr.insert(0, curr_s)
-        for t in range(run_len):
+        t=0
+        while r_flag:
             next_intersection = (t + 1) % 4
             if next_intersection == 3:
                 a_space = [13, 14, 15]
@@ -104,6 +106,10 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
             beta = c * alpha
             env_param = sim_environment.take_action(curr_a)
             r = env_param['rwd']
+            if r == -100:
+                r_flag = False
+            else:
+                r_flag = True
             next_s = env_param['next_state']
             r_arr[(t+1) % (n+1)] = r
             next_a = epsilon_greedy_a(e, a_space, next_s, weight[:, 0])
@@ -115,7 +121,10 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
                 q_tau = q_est(s_arr[(tau) % (n + 1)], a_arr[(tau) % (n + 1)], weight[:, 0])
                 do_error = sum(r_arr) - n * avg_reward + q_tau_n - q_tau
                 avg_reward = avg_reward + beta * do_error
-                weight[:, 0] = weight[:, 0] + alpha * do_error * np.transpose(phi(s_arr[tau % (n + 1)], a_arr[tau % (n + 1)]))
+                phi_s_a_tau = phi(s_arr[tau % (n + 1)], a_arr[tau % (n + 1)])
+                weight[:, 0] = weight[:, 0] + alpha * do_error * np.transpose(phi_s_a_tau)
+            curr_a = next_a
+            t +=1
     W =  weight[:, 0]
     return W
 
