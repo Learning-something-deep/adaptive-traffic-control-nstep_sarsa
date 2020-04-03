@@ -32,6 +32,8 @@ sumoBinary = checkBinary('sumo-gui')                        # mode of SUMO
 
 intn_prev_action = [1, 5, 9, 13]                            # previous action taken at the intersections
 
+first_act_of_run = 0                                        # flag for occurrence of first action of a run
+
 curr_state = array.array('i', [0] * NUM_INTN_SIDES)
 prev_state = array.array('i', [0] * NUM_INTN_SIDES)
 curr_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
@@ -43,12 +45,14 @@ prev_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
 # Outputs - None
 def start_new_run(run):
 
-    global curr_state, prev_state, curr_jam_state, prev_jam_state
+    global curr_state, prev_state, curr_jam_state, prev_jam_state, intn_prev_action, first_act_of_run
 
     curr_state = array.array('i', [0] * NUM_INTN_SIDES)
     prev_state = array.array('i', [0] * NUM_INTN_SIDES)
     curr_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
     prev_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
+    intn_prev_action = [1, 5, 9, 13]
+    first_act_of_run = 0
 
     # Setup plot_metrics for a new set of runs
     if run == 0:
@@ -71,13 +75,28 @@ def start_new_run(run):
 
 
 # Desc: Gives Green signal to the given intersection side.
-# Inputs - a: The intersection side to be given Green signal to, 1<=a<=15
+# Inputs - a: The intersection side to be given Green signal to, 1<=a<=15. If a = 0, no action is taken
 # Outputs - A dictionary containing 2 elements
 #               'rwd': Reward; Returns -100 if the current simulation is over
 #               'next_state': 15-element array containing the no. of vehicles waiting at the intersections in new state
 def take_action(a):
 
-    global curr_state, prev_state, prev_jam_state, intn_prev_action
+    global curr_state, prev_state, prev_jam_state, intn_prev_action, first_act_of_run
+
+    # randomization phase, no control; let static TL logic of SUMO run
+    if a == 0:
+        while (traci.simulation.getMinExpectedNumber() > 0) and (i in range(T_TRANS + T_SWITCH)):
+            traci.simulationStep()
+        curr_state = get_current_state()
+        R = calculate_reward(curr_jam_state, prev_jam_state)
+        prev_state = curr_state
+        prev_jam_state = curr_jam_state
+        return {'rwd': R, 'next_state': curr_state}
+    # randomization phase over, mark it in tripfile file
+    elif first_act_of_run == 0:
+        with open(SUMO_OP_FILE, 'a') as tripfile:
+            print('\t' + "$FIRSTACTION", file=tripfile)
+        first_act_of_run = 1
 
     # Intersection being controlled
     if 1 <= a <= 4:
@@ -108,7 +127,7 @@ def take_action(a):
     curr_state = get_current_state()
 
     with open(SUMO_OP_FILE, 'a') as tripfile:
-        print('\t' + str(curr_state), file=tripfile)
+        print('\t' + "<qlength vals=\"" + str(curr_state.tolist()) + "\"/>", file=tripfile)
 
     # all vehicles left simulation; current run over
     if traci.simulation.getMinExpectedNumber() == 0:
@@ -187,18 +206,3 @@ def endis_sumo_guimode(mode):
         sumoBinary = checkBinary('sumo')
 
     return
-
-
-# For testing only
-if __name__ == "__main__":
-
-    endis_sumo_guimode(0)
-
-    start_new_run(0)
-
-    for i in range(5000):
-        if traci.simulation.getMinExpectedNumber() > 0:
-            print(i, end=' ')
-            traci.simulationStep()
-
-    traci.close()
