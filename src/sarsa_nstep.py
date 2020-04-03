@@ -10,17 +10,15 @@
 # Desc: Runs the Differential n-step Sarsa algorithm for estimating optimal action-value function using Linear
 #       function approximation.
 # Inputs - n: n-step bootstrapping
-#          alpha: step size for weight updates
-#          beta: step size for avg reward updates
-#          epsilon: exploration parameter for epsilon-greedy
+#          c: Step-size ratio; beta = c*alpha 
+#          epsilon: Initial exploration parameter for epsilon-greedy
 #          Nruns: No. of runs
 # Outputs - W: Trained weights after all runs
-def sarsa_nstep_diff(n, alpha, beta, epsilon, Nruns):
+def sarsa_nstep_diff(n, c, epsilon, Nruns):
 
     # Note: functions used by this function
     # sim_environment.start_new_run(run)
     # sim_environment.take_action(a)
-    # sim_environment.get_current_state()
     # q_est(s, a, w)
 
     return W
