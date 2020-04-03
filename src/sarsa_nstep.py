@@ -25,9 +25,10 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
 
 
 # Desc: Uses the previously trained weights by n-step Sarsa to pick optimal actions.
-# Inputs - Nruns: No. of runs
+# Inputs - W: Trained weights using n-step Sarsa
+#          Nruns: No. of runs
 # Outputs - None
-def sarsa_nstep_diff_live(n, c, epsilon, Nruns):
+def sarsa_nstep_diff_live(W, Nruns):
 
     # Note: functions used by this function
     # sim_environment.start_new_run(run)
