@@ -24,7 +24,8 @@ def phi(s, a):
     s_sqr = list(map(lambda x: x * x, s))
     arr = np.zeros([S_LEN * A_LEN + 1, 1])
     for i in range(S_LEN):
-        arr[i + S_LEN * (a - 1)] = s[i]
+        arr[i + S_LEN * (a - 1)] = s_sqr[i]
+    arr[0:-1] = normalize(arr[0:-1])
     arr[-1] = 1
     return arr
 
@@ -94,8 +95,8 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
                 a_space = [4 * next_intersection + 1, 4 * next_intersection + 2, 4 * next_intersection + 3,
                            4 * next_intersection + 4]
 
-            alpha = 1 / (math.ceil((t + 1) / 10))   # for testing   # 0.001
-            beta = c * alpha  # 0.00001
+            alpha = 1 / (math.ceil((t + 1) / 10))
+            beta = c * alpha
             env_param = sim_environment.take_action(curr_a)
             r = env_param['rwd']
             if r == -100:
@@ -111,7 +112,6 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
                 q_tau_n = q_est(s_arr[(tau + n) % (n + 1)], a_arr[(tau + n) % (n + 1)], weight[:, 0])
                 q_tau = q_est(s_arr[tau % (n + 1)], a_arr[tau % (n + 1)], weight[:, 0])
                 do_error = sum(r_arr) - n * avg_reward + q_tau_n - q_tau
-                print(do_error)
                 avg_reward = avg_reward + beta * do_error
                 phi_s_a_tau = phi(s_arr[tau % (n + 1)], a_arr[tau % (n + 1)])
                 weight[:, 0] = weight[:, 0] + alpha * do_error * np.transpose(phi_s_a_tau)
@@ -133,3 +133,15 @@ def sarsa_nstep_diff_live(W, Nruns):
     # q_est(s, a, w)
 
     return
+
+
+# Normalizes array to [-1, 1]
+def normalize(v):
+
+    m = np.amax(np.abs(v))
+    if np.isclose(0.0, m):
+        nv = v
+    else:
+        nv = v / m
+
+    return nv
