@@ -82,7 +82,6 @@ def start_new_run(run):
 def take_action(a):
 
     global curr_state, prev_state, prev_jam_state, intn_prev_action, first_act_of_run
-    i = 0
 
     # randomization phase, no control; let static TL logic of SUMO run
     if a == 0:
