@@ -12,6 +12,9 @@ import random
 import math
 import sim_environment
 
+S_LEN = 15
+A_LEN = 15
+
 
 def state_dependency(s1, s2):
     return math.sqrt(s1 * s1 + s2 * s2)
@@ -19,17 +22,15 @@ def state_dependency(s1, s2):
 
 def phi(s, a):
     s_sqr = list(map(lambda x: x * x, s))
-    s_len = len(s)
-    a_len = s_len
-    arr = np.zeros([s_len * a_len + 1, 1])
-    for i in range(s_len):
-        arr[i + a_len * (a - 1)] = s_sqr[i]
+    arr = np.zeros([S_LEN * A_LEN + 1, 1])
+    for i in range(S_LEN):
+        arr[i + S_LEN * (a - 1)] = s[i]
     arr[-1] = 1
     return arr
 
 
 def initial_state_generate():
-    for j in range(np.random.choice([1, 4, 8, 12, 16, 20])):
+    for j in range(np.random.choice([4, 8, 12, 16, 20])):
         env_dict = sim_environment.take_action(0)
     return env_dict['rwd'], env_dict['next_state']
 
@@ -69,13 +70,11 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
 
     print("Running nstep SARSA training")
 
-    s_len = 15
-    a_len = 15
     buff_len = n + 1
     r_arr = np.zeros(buff_len, dtype=int)
     a_arr = np.zeros(buff_len, dtype=int)
     s_arr = []
-    weight = np.zeros([s_len * a_len + 1, 1])
+    weight = np.zeros([S_LEN * A_LEN + 1, 1])
     avg_reward = 0
     for run in range(Nruns):
         print("Run " + str(run + 1))
@@ -95,8 +94,8 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
                 a_space = [4 * next_intersection + 1, 4 * next_intersection + 2, 4 * next_intersection + 3,
                            4 * next_intersection + 4]
 
-            alpha = 1 / (math.ceil((t + 1) / 10))
-            beta = c * alpha
+            alpha = 1 / (math.ceil((t + 1) / 10))   # for testing   # 0.001
+            beta = c * alpha  # 0.00001
             env_param = sim_environment.take_action(curr_a)
             r = env_param['rwd']
             if r == -100:
@@ -112,6 +111,7 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
                 q_tau_n = q_est(s_arr[(tau + n) % (n + 1)], a_arr[(tau + n) % (n + 1)], weight[:, 0])
                 q_tau = q_est(s_arr[tau % (n + 1)], a_arr[tau % (n + 1)], weight[:, 0])
                 do_error = sum(r_arr) - n * avg_reward + q_tau_n - q_tau
+                print(do_error)
                 avg_reward = avg_reward + beta * do_error
                 phi_s_a_tau = phi(s_arr[tau % (n + 1)], a_arr[tau % (n + 1)])
                 weight[:, 0] = weight[:, 0] + alpha * do_error * np.transpose(phi_s_a_tau)
