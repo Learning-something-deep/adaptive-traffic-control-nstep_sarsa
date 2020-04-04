@@ -12,7 +12,7 @@ import plot_metrics
 import array
 import os
 
-T_SWITCH = 15                                               # Intersection switching time
+T_SWITCH = 12                                               # Intersection switching time
 T_TRANS = 4                                                 # Signal transition time when changing sides
 JAMLEN_THRESH = 65                                          # Length of vehicle queue for jamming
 NUM_INTN_SIDES = 15                                         # No. of intersection sides
@@ -82,13 +82,21 @@ def start_new_run(run):
 def take_action(a):
 
     global curr_state, prev_state, prev_jam_state, intn_prev_action, first_act_of_run
+    i = 0
 
     # randomization phase, no control; let static TL logic of SUMO run
     if a == 0:
-        while (traci.simulation.getMinExpectedNumber() > 0) and (i in range(T_TRANS + T_SWITCH)):
+        for i in range(T_TRANS + T_SWITCH):
             traci.simulationStep()
         curr_state = get_current_state()
         R = calculate_reward(curr_jam_state, prev_jam_state)
+
+        # all vehicles left simulation; current run over
+        if traci.simulation.getMinExpectedNumber() == 0:
+            traci.close()
+            plot_metrics.record_metrics_of_run()
+            return {'rwd': -100, 'next_state': curr_state}
+
         prev_state = curr_state
         prev_jam_state = curr_jam_state
         return {'rwd': R, 'next_state': curr_state}
@@ -111,17 +119,17 @@ def take_action(a):
     # if action same as previous for this intersection
     if a == intn_prev_action[intn]:
         traci.trafficlight.setPhase(TL_IDS[intn], TL_PHASES['N' + str(a) + '_G'])   # Continue Green during transition
-        while (traci.simulation.getMinExpectedNumber() > 0) and (i in range(T_TRANS)):
+        for i in range(T_TRANS):
             traci.simulationStep()
     # different action
     else:
         traci.trafficlight.setPhase(TL_IDS[intn], TL_PHASES['N' + str(intn_prev_action[intn]) + '_Y'])   # Give Yellow during transition
-        while (traci.simulation.getMinExpectedNumber() > 0) and (i in range(T_TRANS)):
+        for i in range(T_TRANS):
             traci.simulationStep()
 
     # Give Green and wait for T_SWITCH secs
     traci.trafficlight.setPhase(TL_IDS[intn], TL_PHASES['N' + str(a) + '_G'])
-    while (traci.simulation.getMinExpectedNumber() > 0) and (i in range(T_SWITCH)):
+    for i in range(T_SWITCH):
         traci.simulationStep()
 
     curr_state = get_current_state()
