@@ -14,7 +14,8 @@ import os
 
 T_SWITCH = 12                                               # Intersection switching time
 T_TRANS = 4                                                 # Signal transition time when changing sides
-JAMLEN_THRESH = 65                                          # Length of vehicle queue for jamming
+OCC_TH_HIGH = 70                                            # Detector occupancy high threshold for jamming
+OCC_TH_LOW = 30                                             # Detector occupancy low threshold for jamming
 NUM_INTN_SIDES = 15                                         # No. of intersection sides
 NUM_LANES = [3, 2, 3, 2, 3, 2, 3, 2, 1, 1, 1, 1, 2, 1, 2]   # No. of lanes at intersection sides
 
@@ -34,8 +35,8 @@ intn_prev_action = [1, 5, 9, 13]                            # previous action ta
 
 first_act_of_run = 0                                        # flag for occurrence of first action of a run
 
-curr_state = array.array('i', [0] * NUM_INTN_SIDES)
-prev_state = array.array('i', [0] * NUM_INTN_SIDES)
+curr_state = array.array('f', [0] * NUM_INTN_SIDES)
+prev_state = array.array('f', [0] * NUM_INTN_SIDES)
 curr_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
 prev_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
 
@@ -47,8 +48,8 @@ def start_new_run(run):
 
     global curr_state, prev_state, curr_jam_state, prev_jam_state, intn_prev_action, first_act_of_run
 
-    curr_state = array.array('i', [0] * NUM_INTN_SIDES)
-    prev_state = array.array('i', [0] * NUM_INTN_SIDES)
+    curr_state = array.array('f', [0] * NUM_INTN_SIDES)
+    prev_state = array.array('f', [0] * NUM_INTN_SIDES)
     curr_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
     prev_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
     intn_prev_action = [1, 5, 9, 13]
@@ -60,7 +61,7 @@ def start_new_run(run):
 
     # Generate a new random routes file
     os.system("python \"%SUMO_HOME%/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
-              "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 2000 -p 0.5 --binomial=5")
+              "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -l")
 
     # Delete unwanted alt route file
     os.system("del \"../scripts/txmap.rou.alt.xml\"")
@@ -88,7 +89,7 @@ def take_action(a):
         for i in range(T_TRANS + T_SWITCH):
             traci.simulationStep()
         curr_state = get_current_state()
-        R = calculate_reward(curr_jam_state, prev_jam_state)
+        R = calculate_reward(curr_state, prev_state, a)
 
         # all vehicles left simulation; current run over
         if traci.simulation.getMinExpectedNumber() == 0:
@@ -142,7 +143,7 @@ def take_action(a):
         plot_metrics.record_metrics_of_run()
         return {'rwd': -100, 'next_state': curr_state}
 
-    R = calculate_reward(curr_jam_state, prev_jam_state)
+    R = calculate_reward(curr_state, prev_state, a)
 
     prev_state = curr_state
     prev_jam_state = curr_jam_state
@@ -151,51 +152,51 @@ def take_action(a):
     return {'rwd': R, 'next_state': curr_state}
 
 
-# Desc: Returns the no. of vehicles waiting at the intersections currently.
+# Desc: Returns the detector occupancies at the intersections currently.
 # Inputs - None
-# Outputs - state: 15-element array containing the no. of vehicles waiting at the intersections currently
+# Outputs - state: 15-element array containing the detector occupancies at the intersections currently
 def get_current_state():
 
     global curr_jam_state
 
-    state = array.array('i', [0] * NUM_INTN_SIDES)
+    state = array.array('f', [0] * NUM_INTN_SIDES)
 
     for i in range(NUM_INTN_SIDES):
         n = 0
-        jammed = 0
         for j in range(NUM_LANES[i]):
-            n = max(n, traci.lanearea.getJamLengthVehicle("e2det_N"+str(i+1)+"_"+str(j)))
-            if traci.lanearea.getJamLengthMeters("e2det_N"+str(i+1)+"_"+str(j)) > JAMLEN_THRESH:
-                jammed = 1
+            n = max(n, traci.lanearea.getLastStepOccupancy("e2det_N"+str(i+1)+"_"+str(j)))
 
-        if jammed == 1:
-            state[i] = int(n*1.5 + 1)      # if jammed, over-estimate possible queue length
+        state[i] = n
+
+        if n >= OCC_TH_HIGH:
+            curr_jam_state[i] = 1
         else:
-            state[i] = n
-
-        curr_jam_state[i] = jammed
+            curr_jam_state[i] = 0
 
     return state
 
 
 # Desc: Calculates the reward when transitioning states.
-# Inputs - curr_jam: Current state of congestion
-#          prev_jam: Previous state of congestion
+# Inputs - curr_occ: Current state of congestion
+#          prev_occ: Previous state of congestion
+#          a: Action taken for going from prev to curr state
 # Outputs - Reward: Reward
-def calculate_reward(curr_jam, prev_jam):
+def calculate_reward(curr_occ, prev_occ, a):
 
     Reward = 0
-    for i in range(NUM_INTN_SIDES):
-        if curr_jam[i]==0 and prev_jam[i]==0:
-            Reward += 0
-        if curr_jam[i]==1 and prev_jam[i]==0:
-            Reward += -1
-        if curr_jam[i]==0 and prev_jam[i]==1:
-            Reward += 1
-        if curr_jam[i]==1 and prev_jam[i]==1:
-            Reward += -2
 
-    Reward /= NUM_INTN_SIDES
+    # static signalling; reward doesn't matter
+    if a == 0:
+        return 0
+
+    if curr_occ[a - 1] < OCC_TH_LOW and prev_occ[a - 1] < OCC_TH_LOW:
+        Reward = -20
+    elif curr_occ[a - 1] >= OCC_TH_LOW and prev_occ[a - 1] < OCC_TH_LOW:
+        Reward = -10
+    elif curr_occ[a - 1] < OCC_TH_LOW and prev_occ[a - 1] >= OCC_TH_HIGH:
+        Reward = 5
+    elif curr_occ[a - 1] >= OCC_TH_LOW and prev_occ[a - 1] >= OCC_TH_HIGH:
+        Reward = 10
 
     return Reward
 
@@ -213,3 +214,44 @@ def endis_sumo_guimode(mode):
         sumoBinary = checkBinary('sumo')
 
     return
+
+
+# # For testing only
+# if __name__ == "__main__":
+#
+#     intn = 1
+#     a1 = 4; a2 = 8; a3 = 12; a4 = 15
+#
+#     endis_sumo_guimode(1)
+#     start_new_run(0)
+#
+#     while True:
+#         if intn == 1:
+#             oup = take_action(a1)
+#             a1 -= 1
+#             if a1 == 0:
+#                 a1 = 4
+#             intn = 2
+#         elif intn == 2:
+#             oup = take_action(a2)
+#             a2 -= 1
+#             if a2 == 4:
+#                 a2 = 8
+#             intn = 3
+#         elif intn == 3:
+#             oup = take_action(a3)
+#             a3 -= 1
+#             if a3 == 8:
+#                 a3 = 12
+#             intn = 4
+#         elif intn == 4:
+#             oup = take_action(a4)
+#             a4 -= 1
+#             if a4 == 12:
+#                 a4 = 15
+#             intn = 1
+#
+#         R = oup['rwd']
+#         print(a1, a2, a3, a4)
+#         if R == -100:
+#             break
