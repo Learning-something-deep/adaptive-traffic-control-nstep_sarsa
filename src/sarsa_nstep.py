@@ -21,11 +21,9 @@ def state_dependency(s1, s2):
 
 
 def phi(s, a):
-    s_sqr = list(map(lambda x: x * x, s))
     arr = np.zeros([S_LEN * A_LEN + 1, 1])
     for i in range(S_LEN):
-        arr[i + S_LEN * (a - 1)] = s_sqr[i]
-    arr[0:-1] = normalize(arr[0:-1])
+        arr[i + S_LEN * (a - 1)] = s[i]/100
     arr[-1] = 1
     return arr
 
@@ -33,7 +31,7 @@ def phi(s, a):
 def initial_state_generate():
     for j in range(np.random.choice([4, 8, 12, 16, 20])):
         env_dict = sim_environment.take_action(0)
-    return env_dict['rwd'], env_dict['next_state']
+    return env_dict['next_state']
 
 
 # Desc: Computes the approximate action-value function q(s, a) using Linear function approximation.
@@ -72,22 +70,24 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
     print("Running nstep SARSA training")
 
     buff_len = n + 1
-    r_arr = np.zeros(buff_len, dtype=int)
+    r_arr = np.zeros(n, dtype=int)
     a_arr = np.zeros(buff_len, dtype=int)
     s_arr = []
     weight = np.zeros([S_LEN * A_LEN + 1, 1])
-    avg_reward = 0
+
     for run in range(Nruns):
         print("Run " + str(run + 1))
-        e = epsilon * (1 / math.ceil((run + 1) / 3))
+        avg_reward = 10             # initialize avg reward
+        e = epsilon - run * (epsilon / Nruns)
+        if e < 0.4:
+            e = 0.4
         sim_environment.start_new_run(run)
-        r, curr_s = initial_state_generate()
-        r_flag = True
+        curr_s = initial_state_generate()
         curr_a = random.randint(1, 4)
         a_arr[0] = curr_a
         s_arr.insert(0, curr_s)
         t = 0
-        while r_flag:
+        while True:
             next_intersection = (t + 1) % 4
             if next_intersection == 3:
                 a_space = [13, 14, 15]
@@ -97,12 +97,15 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
 
             alpha = 1 / (math.ceil((t + 1) / 10))
             beta = c * alpha
+
             env_param = sim_environment.take_action(curr_a)
             r = env_param['rwd']
             if r == -100:
-                r_flag = False
+                print("Simulation time", t)  # for test
+                break
+
             next_s = env_param['next_state']
-            r_arr[(t+1) % (n+1)] = r
+            r_arr[t % n] = r
             next_a = epsilon_greedy_a(e, a_space, next_s, weight[:, 0])
             s_arr.insert((t+1) % (n+1), next_s)
             a_arr[(t+1) % (n+1)] = next_a
@@ -127,11 +130,34 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
 # Outputs - None
 def sarsa_nstep_diff_live(W, Nruns):
 
-    # Note: functions used by this function
-    # sim_environment.start_new_run(run)
-    # sim_environment.take_action(a)
-    # q_est(s, a, w)
+    print("Running nstep SARSA live")
 
+    for run in range(Nruns):
+
+        print("Run " + str(run + 1))
+        sim_environment.start_new_run(run)
+        curr_s = initial_state_generate()
+
+        t = 0
+        while True:
+            intersection = (t + 1) % 4
+            if intersection == 3:
+                a_space = [13, 14, 15]
+            else:
+                a_space = [4 * intersection + 1, 4 * intersection + 2, 4 * intersection + 3,
+                           4 * intersection + 4]
+
+            a = epsilon_greedy_a(0, a_space, curr_s, W)
+
+            env_param = sim_environment.take_action(a)
+            next_s = env_param['next_state']
+            r = env_param['rwd']
+            if r == -100:
+                print("Simulation time", t)  # for test
+                break
+
+            curr_s = next_s
+            t += 1
     return
 
 
