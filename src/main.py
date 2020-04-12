@@ -11,7 +11,12 @@ import sarsa_nstep
 
 
 # Estimate q* using n-step SARSA
-sim_environment.endis_sumo_guimode(1)   # SUMO GUI mode
-n = 6; c = 5; epsilon = 0.6; Nruns = 1
+sim_environment.endis_sumo_guimode(0)   # SUMO non-GUI mode
+n = 4; c = 0.1; epsilon = 1.0; Nruns = 5
 W = sarsa_nstep.sarsa_nstep_diff_train(n, c, epsilon, Nruns)
 print(W)
+
+# Try out performance with the estimated weights
+sim_environment.endis_sumo_guimode(1)   # SUMO GUI mode
+Nuns = 5
+sarsa_nstep.sarsa_nstep_diff_live(W, Nuns)
