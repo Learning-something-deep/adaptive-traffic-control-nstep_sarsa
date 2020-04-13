@@ -5,15 +5,15 @@
 
 # Handled by Akshay
 
+
 import sim_environment
 import random
 import numpy as np
 
+
 # Desc: Runs Longest Queue First(LQF) algorithm on each intersection of the traffic network.
 # Inputs - Nruns: No. of runs
 # Outputs - None
-
-
 def lqf(Nruns):
 
     # Note: functions used by this function
@@ -49,7 +49,6 @@ def lqf(Nruns):
             next_a = a_space[rand_greedy_q]
             curr_a = next_a
             t += 1
-
     return
 
 
