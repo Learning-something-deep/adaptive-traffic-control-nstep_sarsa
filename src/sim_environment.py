@@ -58,21 +58,16 @@ def start_new_run(run):
     # Setup plot_metrics for a new set of runs
     if run == 0:
         plot_metrics.init()
-    """
+
     # Generate a new random routes file
     os.system("python \"%SUMO_HOME%/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
               "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -l")
-    """
-    # Generate a new random routes file
-    #   FOR LINUX
-    os.system("python \"$SUMO_HOME/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
-        "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -L")
 
     # Delete unwanted alt route file
-    os.system("rm \"../scripts/txmap.rou.alt.xml\"")
+    os.system("del \"../scripts/txmap.rou.alt.xml\"")
 
     # Delete unwanted trips file
-    os.system("rm trips.trips.xml")
+    os.system("del trips.trips.xml")
 
     # Start SUMO and connect traCI to it
     traci.start([sumoBinary, "-c", "../scripts/txmap.sumocfg", "--gui-settings-file", "../scripts/guisettings.xml", "--start", "--quit-on-end"])
@@ -187,37 +182,55 @@ def get_current_state():
 #          a: Action taken for going from prev to curr state
 # Outputs - Reward: Reward
 def calculate_reward(curr_occ, prev_occ, a):
-    if a < 5:
-        a_space = [1, 2, 3 ,4]
-    elif a<9:
-        a_space = [5, 6, 7, 8]
-    elif a< 13:
-        a_space = [9, 10, 11, 12]
-    else:
-        a_space = [13, 14, 15]
 
-    occ_arr = [0] * len(a_space)
     Reward = 0
 
     # static signalling; reward doesn't matter
     if a == 0:
         return 0
 
+    if a < 5:
+        a_space = [1, 2, 3 ,4]
+    elif a < 9:
+        a_space = [5, 6, 7, 8]
+    elif a < 13:
+        a_space = [9, 10, 11, 12]
+    else:
+        a_space = [13, 14, 15]
+
     if curr_occ[a - 1] < OCC_TH_LOW and prev_occ[a - 1] < OCC_TH_LOW:
-        Reward = -20
+        Reward = -40
     elif curr_occ[a - 1] >= OCC_TH_LOW and prev_occ[a - 1] < OCC_TH_LOW:
-        Reward = -10
+        Reward = -20
+    elif curr_occ[a - 1] < OCC_TH_LOW and (OCC_TH_LOW <= prev_occ[a - 1] < OCC_TH_HIGH):
+        prev_occ_arr = []
+        for a_temp in a_space:
+            prev_occ_arr.append(prev_occ[a_temp - 1])
+        prev_occ_max = max(prev_occ_arr)
+        if prev_occ_max == prev_occ[a - 1]:
+            Reward = 10
+        else:
+            Reward = 5
+    elif curr_occ[a - 1] >= OCC_TH_LOW and (OCC_TH_LOW <= prev_occ[a - 1] < OCC_TH_HIGH):
+        prev_occ_arr = []
+        for a_temp in a_space:
+            prev_occ_arr.append(prev_occ[a_temp - 1])
+        prev_occ_max = max(prev_occ_arr)
+        if prev_occ_max == prev_occ[a - 1]:
+            Reward = 20
+        else:
+            Reward = 15
     elif curr_occ[a - 1] < OCC_TH_LOW and prev_occ[a - 1] >= OCC_TH_HIGH:
         prev_occ_arr = []
         for a_temp in a_space:
             prev_occ_arr.append(prev_occ[a_temp - 1])
         prev_occ_max = max(prev_occ_arr)
-        if prev_occ_max == prev_occ[a-1]:
-            Reward = 10
+        if prev_occ_max == prev_occ[a - 1]:
+            Reward = 30
         else:
-            Reward = 5
+            Reward = 25
     elif curr_occ[a - 1] >= OCC_TH_LOW and prev_occ[a - 1] >= OCC_TH_HIGH:
-        Reward = 20
+        Reward = 40
 
     return Reward
 
@@ -235,44 +248,3 @@ def endis_sumo_guimode(mode):
         sumoBinary = checkBinary('sumo')
 
     return
-
-
-# # For testing only
-# if __name__ == "__main__":
-#
-#     intn = 1
-#     a1 = 4; a2 = 8; a3 = 12; a4 = 15
-#
-#     endis_sumo_guimode(1)
-#     start_new_run(0)
-#
-#     while True:
-#         if intn == 1:
-#             oup = take_action(a1)
-#             a1 -= 1
-#             if a1 == 0:
-#                 a1 = 4
-#             intn = 2
-#         elif intn == 2:
-#             oup = take_action(a2)
-#             a2 -= 1
-#             if a2 == 4:
-#                 a2 = 8
-#             intn = 3
-#         elif intn == 3:
-#             oup = take_action(a3)
-#             a3 -= 1
-#             if a3 == 8:
-#                 a3 = 12
-#             intn = 4
-#         elif intn == 4:
-#             oup = take_action(a4)
-#             a4 -= 1
-#             if a4 == 12:
-#                 a4 = 15
-#             intn = 1
-#
-#         R = oup['rwd']
-#         print(a1, a2, a3, a4)
-#         if R == -100:
-#             break
