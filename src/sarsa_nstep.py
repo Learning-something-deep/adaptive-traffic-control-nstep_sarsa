@@ -77,7 +77,7 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
 
     for run in range(Nruns):
         print("Run " + str(run + 1))
-        avg_reward = 10             # initialize avg reward
+        avg_reward = 40             # initialize avg reward
         e = epsilon - run * (epsilon / Nruns)
         if e < 0.4:
             e = 0.4
