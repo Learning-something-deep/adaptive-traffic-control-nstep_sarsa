@@ -6,7 +6,7 @@ import sim_environment
 import numpy as np
 
 
-# cyclic signal change
+# Cyclic signal change
 def static_signalling(Nruns):
 
     print("Running Static signalling")
@@ -42,6 +42,7 @@ def static_signalling(Nruns):
     return
 
 
+# Generate a random initial state for the simulation
 def initial_state_generate():
     for j in range(np.random.choice([4, 8, 12, 16, 20])):
         env_dict = sim_environment.take_action(0)
