@@ -16,14 +16,12 @@ import numpy as np
 # Outputs - None
 def lqf(Nruns):
 
-    # Note: functions used by this function
-    # sim_environment.start_new_run(run)
-    # sim_environment.take_action(a)
-    print("Implementing LQF")
+    print("Running LQF")
+
     for run in range(Nruns):
         print("Run " + str(run + 1))
         sim_environment.start_new_run(run)
-        curr_s = initial_state_generate()
+        initial_state_generate()
         curr_a = random.randint(1, 4)
         t = 0
         while True:
@@ -32,7 +30,7 @@ def lqf(Nruns):
             next_s = env_param['next_state']
             r = env_param['rwd']
             if r == -100:
-                print("End of lqf simulation at t= " + str(t))
+                print("End of simulation at t = " + str(t))
                 break
 
             if next_intersection == 3:
@@ -40,9 +38,10 @@ def lqf(Nruns):
             else:
                 a_space = [4 * next_intersection + 1, 4 * next_intersection + 2, 4 * next_intersection + 3,
                            4 * next_intersection + 4]
+
             q_next = []
             for a_temp in a_space:
-                q_next.append(next_s[a_temp -1])
+                q_next.append(next_s[a_temp - 1])
             q_max = max(q_next)
             q_max_index = [i for i, j in enumerate(q_next) if j == q_max]
             rand_greedy_q = np.random.choice(q_max_index)
