@@ -6,14 +6,16 @@ import sim_environment
 import numpy as np
 
 
-def cyclic_signal(Nruns):
-    # cyclic signal change
-    print("calculating static signalling parameters")
+# cyclic signal change
+def static_signalling(Nruns):
+
+    print("Running Static signalling")
+
     for run in range(Nruns):
         print("Run " + str(run + 1))
         sim_environment.start_new_run(run)
-        curr_s = initial_state_generate()
-        curr_a = 1 # cyclic test
+        initial_state_generate()
+        curr_a = 1      # cyclic test
         t = 0
         counter = [1, 0, 0, 0]
         while True:
@@ -24,14 +26,16 @@ def cyclic_signal(Nruns):
                 a_space = [4 * next_intersection + 1, 4 * next_intersection + 2, 4 * next_intersection + 3,
                            4 * next_intersection + 4]
             next_a = a_space[counter[next_intersection]]
+
             if counter[next_intersection] != len(a_space) - 1:
                 counter[next_intersection] += 1
             else:
                 counter[next_intersection] = 0
+
             env_param = sim_environment.take_action(curr_a)
             r = env_param['rwd']
             if r == -100:
-                print("End of static signalling simulation at t= " + str(t))
+                print("End of simulation at t = " + str(t))
                 break
             curr_a = next_a
             t += 1
