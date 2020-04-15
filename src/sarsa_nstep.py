@@ -16,14 +16,10 @@ S_LEN = 15
 A_LEN = 15
 
 
-def state_dependency(s1, s2):
-    return math.sqrt(s1 * s1 + s2 * s2)
-
-
 def phi(s, a):
     arr = np.zeros([S_LEN * A_LEN + 1, 1])
     for i in range(S_LEN):
-        arr[i + S_LEN * (a - 1)] = s[i]/100
+        arr[i + S_LEN * (a - 1)] = s[i]/100.0
     arr[-1] = 1
     return arr
 
@@ -77,7 +73,7 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
 
     for run in range(Nruns):
         print("Run " + str(run + 1))
-        avg_reward = 40             # initialize avg reward
+        avg_reward = 0             # initialize avg reward
         e = epsilon - run * (epsilon / Nruns)
         if e < 0.4:
             e = 0.4
@@ -101,7 +97,7 @@ def sarsa_nstep_diff_train(n, c, epsilon, Nruns):
             env_param = sim_environment.take_action(curr_a)
             r = env_param['rwd']
             if r == -100:
-                print("Simulation time", t)  # for test
+                print("End of simulation at t = " + str(t))
                 break
 
             next_s = env_param['next_state']
@@ -140,7 +136,7 @@ def sarsa_nstep_diff_live(W, Nruns):
 
         t = 0
         while True:
-            intersection = (t + 1) % 4
+            intersection = t % 4
             if intersection == 3:
                 a_space = [13, 14, 15]
             else:
@@ -153,7 +149,7 @@ def sarsa_nstep_diff_live(W, Nruns):
             next_s = env_param['next_state']
             r = env_param['rwd']
             if r == -100:
-                print("Simulation time", t)  # for test
+                print("End of simulation at t = " + str(t))
                 break
 
             curr_s = next_s
