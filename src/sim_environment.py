@@ -14,8 +14,8 @@ import os
 
 T_SWITCH = 12                                               # Intersection switching time
 T_TRANS = 4                                                 # Signal transition time when changing sides
-OCC_TH_HIGH = 70                                            # Detector occupancy high threshold for jamming
-OCC_TH_LOW = 30                                             # Detector occupancy low threshold for jamming
+OCC_TH_HIGH = 70.0                                          # Detector occupancy high threshold for jamming
+OCC_TH_LOW = 30.0                                           # Detector occupancy low threshold for jamming
 NUM_INTN_SIDES = 15                                         # No. of intersection sides
 NUM_LANES = [3, 2, 3, 2, 3, 2, 3, 2, 1, 1, 1, 1, 2, 1, 2]   # No. of lanes at intersection sides
 
@@ -27,13 +27,16 @@ TL_PHASES = {'N1_G': 0, 'N1_Y': 1, 'N2_G': 2, 'N2_Y': 3, 'N3_G': 4, 'N3_Y': 5, '
              'N9_G': 0, 'N9_Y': 1, 'N10_G': 2, 'N10_Y': 3, 'N11_G': 4, 'N11_Y': 5, 'N12_G': 6, 'N12_Y': 7,
              'N13_G': 0, 'N13_Y': 1, 'N14_G': 2, 'N14_Y': 3, 'N15_G': 4, 'N15_Y': 5}
 
-SUMO_OP_FILE = "../scripts/txmap-tripinfo.xml"
+QLEN_FILE = "../scripts/qlengths.xml"
+qlenfile = open(QLEN_FILE, 'w')
 
 sumoBinary = checkBinary('sumo-gui')                        # mode of SUMO
 
 intn_prev_action = [1, 5, 9, 13]                            # previous action taken at the intersections
 
 first_act_of_run = 0                                        # flag for occurrence of first action of a run
+skip_time = 0                                               # time spent in initial randomization
+t = 0
 
 curr_state = array.array('f', [0] * NUM_INTN_SIDES)
 prev_state = array.array('f', [0] * NUM_INTN_SIDES)
@@ -46,7 +49,7 @@ prev_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
 # Outputs - None
 def start_new_run(run):
 
-    global curr_state, prev_state, curr_jam_state, prev_jam_state, intn_prev_action, first_act_of_run
+    global curr_state, prev_state, curr_jam_state, prev_jam_state, intn_prev_action, first_act_of_run, skip_time, qlenfile
 
     curr_state = array.array('f', [0] * NUM_INTN_SIDES)
     prev_state = array.array('f', [0] * NUM_INTN_SIDES)
@@ -54,14 +57,15 @@ def start_new_run(run):
     prev_jam_state = array.array('i', [0] * NUM_INTN_SIDES)
     intn_prev_action = [1, 5, 9, 13]
     first_act_of_run = 0
+    skip_time = 0
 
     # Setup plot_metrics for a new set of runs
     if run == 0:
-        plot_metrics.init()
+        plot_metrics.init(T_TRANS + T_SWITCH)
 
     # Generate a new random routes file
     os.system("python \"%SUMO_HOME%/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
-              "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -l")
+              "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -L")
 
     # Delete unwanted alt route file
     os.system("del \"../scripts/txmap.rou.alt.xml\"")
@@ -70,7 +74,13 @@ def start_new_run(run):
     os.system("del trips.trips.xml")
 
     # Start SUMO and connect traCI to it
-    traci.start([sumoBinary, "-c", "../scripts/txmap.sumocfg", "--gui-settings-file", "../scripts/guisettings.xml", "--start", "--quit-on-end"])
+    traci.start([sumoBinary, "-c", "../scripts/txmap.sumocfg", "--gui-settings-file", "../scripts/guisettings.xml",
+                 "--start", "--quit-on-end", "--no-warnings"])
+
+    qlenfile = open(QLEN_FILE, 'w')
+    qlenfile.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + "\n\n")
+    qlenfile.write("<qlengths>" + '\n')
+    qlenfile.flush()
 
     return
 
@@ -82,7 +92,7 @@ def start_new_run(run):
 #               'next_state': 15-element array containing the no. of vehicles waiting at the intersections in new state
 def take_action(a):
 
-    global curr_state, prev_state, prev_jam_state, intn_prev_action, first_act_of_run
+    global curr_state, prev_state, prev_jam_state, intn_prev_action, first_act_of_run, skip_time, t
 
     # randomization phase, no control; let static TL logic of SUMO run
     if a == 0:
@@ -90,20 +100,22 @@ def take_action(a):
             traci.simulationStep()
         curr_state = get_current_state()
         R = calculate_reward(curr_state, prev_state, a)
+        skip_time += T_TRANS + T_SWITCH
 
         # all vehicles left simulation; current run over
         if traci.simulation.getMinExpectedNumber() == 0:
             traci.close()
-            plot_metrics.record_metrics_of_run()
+            qlenfile.write("</qlengths>")
+            qlenfile.close()
+            plot_metrics.record_metrics_of_run(skip_time)
             return {'rwd': -100, 'next_state': curr_state}
 
         prev_state = curr_state
         prev_jam_state = curr_jam_state
         return {'rwd': R, 'next_state': curr_state}
-    # randomization phase over, mark it in tripfile file
+    # randomization phase over
     elif first_act_of_run == 0:
-        with open(SUMO_OP_FILE, 'a') as tripfile:
-            print('\t' + "$FIRSTACTION", file=tripfile)
+        t = 0           # time counting starts from here
         first_act_of_run = 1
 
     # Intersection being controlled
@@ -134,13 +146,16 @@ def take_action(a):
 
     curr_state = get_current_state()
 
-    with open(SUMO_OP_FILE, 'a') as tripfile:
-        print('\t' + "<qlength vals=\"" + str(curr_state.tolist()) + "\"/>", file=tripfile)
+    t += T_TRANS + T_SWITCH
+    qlenfile.write('\t' + "<qlength vals=\"" + str(curr_state.tolist()) + "\" t=\"" + str(t) + "\"/>" + '\n')
+    qlenfile.flush()
 
     # all vehicles left simulation; current run over
     if traci.simulation.getMinExpectedNumber() == 0:
         traci.close()
-        plot_metrics.record_metrics_of_run()
+        qlenfile.write("</qlengths>")
+        qlenfile.close()
+        plot_metrics.record_metrics_of_run(skip_time)
         return {'rwd': -100, 'next_state': curr_state}
 
     R = calculate_reward(curr_state, prev_state, a)
@@ -162,7 +177,7 @@ def get_current_state():
     state = array.array('f', [0] * NUM_INTN_SIDES)
 
     for i in range(NUM_INTN_SIDES):
-        n = 0
+        n = 0.0
         for j in range(NUM_LANES[i]):
             n = max(n, traci.lanearea.getLastStepOccupancy("e2det_N"+str(i+1)+"_"+str(j)))
 
