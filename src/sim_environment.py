@@ -11,6 +11,7 @@ import traci
 import plot_metrics
 import array
 import os
+import platform
 
 T_SWITCH = 12                                               # Intersection switching time
 T_TRANS = 4                                                 # Signal transition time when changing sides
@@ -63,15 +64,30 @@ def start_new_run(run):
     if run == 0:
         plot_metrics.init(T_TRANS + T_SWITCH)
 
-    # Generate a new random routes file
-    os.system("python \"%SUMO_HOME%/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
-              "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -L")
+    if operate_system == 'Windows':
+        # Generate a new random routes file
+        os.system(
+            "python \"%SUMO_HOME%/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
+            "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -l")
+        # Delete unwanted alt route file
+        os.system("del \"../scripts/txmap.rou.alt.xml\"")
 
-    # Delete unwanted alt route file
-    os.system("del \"../scripts/txmap.rou.alt.xml\"")
+        # Delete unwanted trips file
+        os.system("del trips.trips.xml")
 
-    # Delete unwanted trips file
-    os.system("del trips.trips.xml")
+    elif operate_system == 'Linux':
+        # Generate a new random routes file
+        #   FOR LINUX
+        os.system(
+            "python \"$SUMO_HOME/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
+            "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -L")
+
+        # Delete unwanted alt route file
+        os.system("rm \"../scripts/txmap.rou.alt.xml\"")
+
+        # Delete unwanted trips file
+        os.system("rm trips.trips.xml")
+
 
     # Start SUMO and connect traCI to it
     traci.start([sumoBinary, "-c", "../scripts/txmap.sumocfg", "--gui-settings-file", "../scripts/guisettings.xml",
