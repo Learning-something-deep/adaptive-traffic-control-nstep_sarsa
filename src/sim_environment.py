@@ -64,30 +64,22 @@ def start_new_run(run):
     if run == 0:
         plot_metrics.init(T_TRANS + T_SWITCH)
 
-    if operate_system == 'Windows':
+    if platform.system() == 'Windows':
         # Generate a new random routes file
-        os.system(
-            "python \"%SUMO_HOME%/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
-            "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -l")
+        os.system("python \"%SUMO_HOME%/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
+            "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -L")
         # Delete unwanted alt route file
         os.system("del \"../scripts/txmap.rou.alt.xml\"")
-
         # Delete unwanted trips file
         os.system("del trips.trips.xml")
-
-    elif operate_system == 'Linux':
+    elif platform.system() == 'Linux':
         # Generate a new random routes file
-        #   FOR LINUX
-        os.system(
-            "python \"$SUMO_HOME/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
+        os.system("python \"$SUMO_HOME/tools/randomTrips.py\" -n ../scripts/txmap.net.xml --trip-attributes=\"type=\\\"light_norm_heavy\\\"\" "
             "-a ../scripts/txmap.add.xml -r ../scripts/txmap.rou.xml -e 12000 -p 1.25 --binomial=5 -L")
-
         # Delete unwanted alt route file
         os.system("rm \"../scripts/txmap.rou.alt.xml\"")
-
         # Delete unwanted trips file
         os.system("rm trips.trips.xml")
-
 
     # Start SUMO and connect traCI to it
     traci.start([sumoBinary, "-c", "../scripts/txmap.sumocfg", "--gui-settings-file", "../scripts/guisettings.xml",
@@ -221,7 +213,7 @@ def calculate_reward(curr_occ, prev_occ, a):
         return 0
 
     if a < 5:
-        a_space = [1, 2, 3 ,4]
+        a_space = [1, 2, 3, 4]
     elif a < 9:
         a_space = [5, 6, 7, 8]
     elif a < 13:
