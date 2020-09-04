@@ -4,14 +4,17 @@
 
 # Depends on: None
 
-# Handled by Anirudh
 
 
 from lxml import etree as ET
 import matplotlib.pyplot as plt
+import pickle
 
 TRIPINFO_FILE = "../scripts/txmap-tripinfo.xml"
 QLENGTH_FILE = "../scripts/qlengths.xml"
+
+datapoint_dir = "./datapoints/"
+DEADLOCK_THRESH = 1300
 
 STEP_SIZE = 0
 run = 0
@@ -45,7 +48,7 @@ def init(step_size):
 # Outputs - None
 def record_metrics_of_run(skip_time):
 
-    global run, timeLoss_all_runs, waitingTime_all_runs
+    global run, timeLoss_all_runs, waitingTime_all_runs, qlength_all_runs
 
     # parse output and put the lines in an array
     elementList = []
@@ -127,41 +130,97 @@ def plot_all_metrics(title):
 
     fig1 = plt.figure()
     fig1.suptitle(title)
-    plt.plot(average_metrics(timeLoss_all_runs), 'b')
-    plt.xlabel('time steps')
-    plt.ylabel('timeLoss')
+    dl, ndl = average_metrics(timeLoss_all_runs)
+    plt.subplot(2, 1, 1)
+    plt.plot(dl, 'b'), plt.title("Deadlock", fontsize=6)
+    plt.xlabel('time steps'), plt.ylabel('timeLoss')
+    plt.subplot(2, 1, 2)
+    plt.plot(ndl, 'b'), plt.title("Non-deadlock", fontsize=6)
+    plt.xlabel('time steps'), plt.ylabel('timeLoss')
+    with open(datapoint_dir + title+'_tl_'+'dl', 'wb') as fh:
+        pickle.dump(dl, fh)
+    with open(datapoint_dir + title+'_tl_'+'ndl', 'wb') as fh:
+        pickle.dump(ndl, fh)
 
     fig2 = plt.figure()
     fig2.suptitle(title)
-    plt.plot(average_metrics(waitingTime_all_runs), 'r')
-    plt.xlabel('time steps')
-    plt.ylabel('waitingTime')
+    dl, ndl = average_metrics(waitingTime_all_runs)
+    plt.subplot(2, 1, 1)
+    plt.plot(dl, 'r'), plt.title("Deadlock", fontsize=6)
+    plt.xlabel('time steps'), plt.ylabel('waitingTime')
+    plt.subplot(2, 1, 2)
+    plt.plot(ndl, 'r'), plt.title("Non-deadlock", fontsize=6)
+    plt.xlabel('time steps'), plt.ylabel('waitingTime')
+    with open(datapoint_dir + title+'_wt_'+'dl', 'wb') as fh:
+        pickle.dump(dl, fh)
+    with open(datapoint_dir + title+'_wt_'+'ndl', 'wb') as fh:
+        pickle.dump(ndl, fh)
 
     fig3 = plt.figure()
     fig3.suptitle(title)
-    plt.plot(average_metrics(qlength_all_runs), 'g')
-    plt.xlabel('time steps')
-    plt.ylabel('Queue length')
+    dl, ndl = average_metrics(qlength_all_runs)
+    plt.subplot(2, 1, 1)
+    plt.plot(dl, 'g'), plt.title("Deadlock", fontsize=6)
+    plt.xlabel('time steps'), plt.ylabel('Queue length')
+    plt.subplot(2, 1, 2)
+    plt.plot(ndl, 'g'), plt.title("Non-deadlock", fontsize=6)
+    plt.xlabel('time steps'), plt.ylabel('Queue length')
+    with open(datapoint_dir + title+'_ql_'+'dl', 'wb') as fh:
+        pickle.dump(dl, fh)
+    with open(datapoint_dir + title+'_ql_'+'ndl', 'wb') as fh:
+        pickle.dump(ndl, fh)
+
+    fig4 = plt.figure()
+    fig4.suptitle(title)
+    run_lengths = [len(waitingTime_all_runs[i]) for i in range(run)]
+    plt.plot(run_lengths, 'm')
+    plt.xlabel('Live runs'), plt.ylabel('Run length')
+    with open(datapoint_dir + title+'_runlen', 'wb') as fh:
+        pickle.dump(run_lengths, fh)
 
     plt.show(block=False)
 
     return
 
 
-# Average given metric across metrics
+# Average given metric across runs
 def average_metrics(metric_all_runs):
 
-    minlen = len(metric_all_runs[0])
+    metric_dl_all_runs = []
+    metric_ndl_all_runs = []
+
+    # Segregate runs as Deadlock or otherwise
     for i in range(run):
-        minlen = min(minlen, len(metric_all_runs[i]))
+        if len(metric_all_runs[i]) > DEADLOCK_THRESH:
+            metric_dl_all_runs.append(metric_all_runs[i])
+        else:
+            metric_ndl_all_runs.append(metric_all_runs[i])
 
-    avg_metric = [0.0] * minlen
-    for i in range(run):
-        avg_metric = [avg_metric[j] + metric_all_runs[i][j] for j in range(minlen)]
+    avg_metric_dl = [0.0]
+    if len(metric_dl_all_runs) > 0:
+        minlen_dl = len(metric_dl_all_runs[0])
+        for i in range(len(metric_dl_all_runs)):
+            minlen_dl = min(minlen_dl, len(metric_dl_all_runs[i]))
 
-    avg_metric = [avg_metric[j]/run for j in range(minlen)]
+        avg_metric_dl = [0.0] * minlen_dl
+        for i in range(len(metric_dl_all_runs)):
+            avg_metric_dl = [avg_metric_dl[j] + metric_dl_all_runs[i][j] for j in range(minlen_dl)]
 
-    return avg_metric
+        avg_metric_dl = [avg_metric_dl[j]/len(metric_dl_all_runs) for j in range(minlen_dl)]
+
+    avg_metric_ndl = [0.0]
+    if len(metric_ndl_all_runs) > 0:
+        minlen_ndl = len(metric_ndl_all_runs[0])
+        for i in range(len(metric_ndl_all_runs)):
+            minlen_ndl = min(minlen_ndl, len(metric_ndl_all_runs[i]))
+
+        avg_metric_ndl = [0.0] * minlen_ndl
+        for i in range(len(metric_ndl_all_runs)):
+            avg_metric_ndl = [avg_metric_ndl[j] + metric_ndl_all_runs[i][j] for j in range(minlen_ndl)]
+
+        avg_metric_ndl = [avg_metric_ndl[j]/len(metric_ndl_all_runs) for j in range(minlen_ndl)]
+
+    return avg_metric_dl, avg_metric_ndl
 
 
 # Calculates average of a list
