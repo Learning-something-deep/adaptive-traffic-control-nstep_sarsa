@@ -8,7 +8,6 @@ import numpy as np
 
 # Cyclic signal change
 def static_signalling(Nruns):
-
     print("Running Static signalling")
 
     for run in range(Nruns):
@@ -34,7 +33,7 @@ def static_signalling(Nruns):
 
             env_param = sim_environment.take_action(curr_a)
             r = env_param['rwd']
-            if r == -100:
+            if r == 1000:
                 print("End of simulation at t = " + str(t))
                 break
             curr_a = next_a
