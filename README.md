@@ -1,4 +1,4 @@
-# RL - Adaptive traffic control system using Reinforcement Learning
+# Adaptive traffic control system using Reinforcement Learning
 
 Copyright 2020, Akshay Kekuda, R. Anirudh, Mithun Krishnan. All rights reserved.
 
