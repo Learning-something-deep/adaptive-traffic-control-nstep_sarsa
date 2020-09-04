@@ -3,7 +3,6 @@
 
 # Depends on: sim_environment.py
 
-# Handled by Akshay
 
 
 import sim_environment
@@ -15,7 +14,6 @@ import numpy as np
 # Inputs - Nruns: No. of runs
 # Outputs - None
 def lqf(Nruns):
-
     print("Running LQF")
 
     for run in range(Nruns):
@@ -29,7 +27,7 @@ def lqf(Nruns):
             env_param = sim_environment.take_action(curr_a)
             next_s = env_param['next_state']
             r = env_param['rwd']
-            if r == -100:
+            if r == 1000:
                 print("End of simulation at t = " + str(t))
                 break
 
