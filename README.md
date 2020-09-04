@@ -29,6 +29,6 @@ The src folder contains the following files and sub-directories:
 ### Procedure to run the project
 1. Set the n,c and Nruns parameters in the main.py file. These values can be changed to test the n-step SARSA algorithm. We found optimal performance with n=3 and c=2. The Nruns parameter runs training/live for "Nruns" trials. Recommended minimum Nruns is 20
 2. Run main.py. This will implement SS Algo for "Nruns" trials and LQF Algo for "Nruns" trials. Then training for n-step SARSA will start. Based on the trained weights, SARSA Live will run for "Nruns" trials. All the performance metrics will be stored into the "/datapoints" sub-directory at the end of "Nruns" trial.
-3. Set the n and c values that were used in the previous step in the test.py file and run test.py to get the performance graphs.
+3. Set the n and c values that were used in the previous step in the generate_plots.py file and run generate_plots.py to get the performance graphs.
 
 
