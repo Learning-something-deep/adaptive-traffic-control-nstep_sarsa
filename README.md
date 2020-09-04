@@ -23,7 +23,7 @@ The src folder contains the following files and sub-directories:
 	2. sarsa_nstep_diff_live(): This module makes use of the trained weights from sarsa_nstep_diff_train() module to test the performance of the n-step SARSA algorithm
 5. sim_environment.py: This script contains modules that model the traffic network. It outputs states, reward for an action and network related files essential for simulating the traffic.
 6. plot_metrics.py: This file contains modules that plot the following metrics: Queue Length, Waiting Time, Time Loss and Dispersion Time. It also saves the metrics into the "datapoints" directory present in the src folder
-7. test.py: This file plots the primary performance graphs of the n-step SARSA algorithm. It compares LQF, SS and n-step SARSA algorithm using the Queue Length, Waiting Time, Time Loss and Dispersion Time metrics.
+7. generate_plots.py: This file plots the primary performance graphs of the n-step SARSA algorithm. It compares LQF, SS and n-step SARSA algorithm using the Queue Length, Waiting Time, Time Loss and Dispersion Time metrics.
 8. datapoints: This directory saves the Queue Length, Waiting Time, Time Loss and Dispersion Time metrics. Ensure that the directory is present inside the src folder
 
 ### Procedure to run the project
