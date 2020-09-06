@@ -1,8 +1,7 @@
 # Adaptive traffic control system using Reinforcement Learning
 
-Copyright 2020, Akshay Kekuda, R. Anirudh, Mithun Krishnan. All rights reserved.
 
-This project implements n-step SARSA algorithm to tackle the traffic congestion problem. The dependencies for this project are listed under the requirements.txt file. Make sure that the required dependencies are installed.
+This project implements **n-step SARSA** algorithm to tackle the traffic congestion problem. The dependencies for this project are listed under the requirements.txt file. Make sure that the required dependencies are installed.
 
 We use SUMO[Simulation of Urban MObility] V1.6 package to simulate traffic patterns on which the algorithm has been tested. Details of SUMO installation can be found at https://sumo.dlr.de/docs/Installing.html
 
